@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "1.5.31"
+    id("maven-publish")
 }
 
 group = "com.deliveryhero.analytics"
