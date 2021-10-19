@@ -6,6 +6,14 @@ plugins {
 group = "com.deliveryhero.analytics"
 version = "1.0-SNAPSHOT"
 
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["kotlin"])
+        }
+    }
+}
+
 repositories {
     mavenCentral()
     maven {
