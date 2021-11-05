@@ -1,1 +1,1 @@
-rootProject.name = "log-vendor-go-analytics"
+rootProject.name = "litics"

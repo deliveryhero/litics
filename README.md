@@ -1,4 +1,4 @@
-# Go Analytics shared repo
+# Litics
 
 ## Disclaimer
 

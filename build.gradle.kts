@@ -3,7 +3,7 @@ plugins {
     id("maven-publish")
 }
 
-group = "com.deliveryhero.analytics"
+group = "com.deliveryhero.litics"
 version = "1.0-SNAPSHOT"
 
 publishing {

@@ -1,4 +1,4 @@
-package com.deliveryhero.analytics
+package com.deliveryhero.litics
 
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock.Builder

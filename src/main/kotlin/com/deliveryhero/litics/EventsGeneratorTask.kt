@@ -1,4 +1,4 @@
-package com.deliveryhero.analytics
+package com.deliveryhero.litics
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.InputDirectory
