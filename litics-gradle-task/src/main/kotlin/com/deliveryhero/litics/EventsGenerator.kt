@@ -8,14 +8,15 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.KModifier.ABSTRACT
 import com.squareup.kotlinpoet.KModifier.OVERRIDE
 import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.SET
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.buildCodeBlock
-import org.yaml.snakeyaml.Yaml
 import java.io.File
-import javax.inject.Inject
+import org.yaml.snakeyaml.Yaml
 
 private const val PACKAGE_LITICS = "com.deliveryhero.litics"
 
@@ -26,10 +27,8 @@ private const val GENERATED_EVENT_ANALYTICS_PACKAGE_NAME = "com.deliveryhero.rps
 private const val GENERATED_EVENT_ANALYTICS_INTERFACE_NAME = "GeneratedEventsAnalytics"
 private const val GENERATED_EVENT_ANALYTICS_CLASS_NAME = "GeneratedEventsAnalyticsImpl"
 
-private const val EVENTS_ANALYTICS_PACKAGE_NAME = "com.deliveryhero.rps.analytics.events"
-private const val EVENT_ANALYTICS_PROPERTY_NAME = "eventAnalytics"
-
-private const val EVENT_ANALYTICS_CLASS_NAME = "EventsAnalytics"
+private const val EVENT_TRACKER_CLASS_NAME = "EventTracker"
+private const val EVENT_TRACKERS_PROPERTY_NAME = "eventTrackers"
 
 private const val TRACKING_EVENT_CLASS_NAME = "TrackingEvent"
 
@@ -70,8 +69,9 @@ object EventsGenerator {
 
     fun generate(sourceDirectory: String, targetDirectory: String) {
 
-        //import EventAnalytics Class
-        val eventAnalytics = ClassName(EVENTS_ANALYTICS_PACKAGE_NAME, EVENT_ANALYTICS_CLASS_NAME)
+        //import EventTracker Class
+        val eventTracker = ClassName(PACKAGE_LITICS, EVENT_TRACKER_CLASS_NAME)
+        val eventTrackers = SET.parameterizedBy(eventTracker)
 
         //import TrackingEvent Class
         val trackingEvent = ClassName(PACKAGE_LITICS, TRACKING_EVENT_CLASS_NAME)
@@ -87,7 +87,7 @@ object EventsGenerator {
         val interfaceTypeSpec = buildInterfaceTypeSpec(funSpecs)
 
         //Make class GeneratedEventsAnalyticsImpl which implements GeneratedEventsAnalytics
-        val interfaceImplTypeSpec = buildInterfaceImplTypeSpec(eventAnalytics, funImplSpecs)
+        val interfaceImplTypeSpec = buildInterfaceImplTypeSpec(eventTrackers, funImplSpecs)
 
         //Make the interface file
         val interfaceFileSpec = buildFileSpec(
@@ -109,30 +109,34 @@ object EventsGenerator {
         interfaceImplFileSpec.writeTo(interfaceImplFile)
     }
 
-    private fun buildInterfaceImplTypeSpec(eventAnalyticsClassName: ClassName, funImplSpecs: MutableList<FunSpec>): TypeSpec {
+    private fun buildInterfaceImplTypeSpec(
+        eventTrackersParameterizedTypeName: ParameterizedTypeName,
+        funImplSpecs: MutableList<FunSpec>,
+    ): TypeSpec {
 
         //Make constructor for GeneratedEventsAnalyticsImpl
-        val constructorFunSpec = buildConstructorFunSpec(eventAnalyticsClassName)
+        val constructorFunSpec = buildConstructorFunSpec(eventTrackersParameterizedTypeName)
 
-        //Make eventAnalytics property for GeneratedEventsAnalyticsImpl
-        val eventAnalyticsPropertySpec = PropertySpec.builder(EVENT_ANALYTICS_PROPERTY_NAME, eventAnalyticsClassName)
-            .initializer(EVENT_ANALYTICS_PROPERTY_NAME)
-            .addModifiers(KModifier.PRIVATE)
-            .build()
+        //Make eventTrackers property for GeneratedEventsAnalyticsImpl
+        val eventTrackersPropertySpec =
+            PropertySpec.builder(EVENT_TRACKERS_PROPERTY_NAME, eventTrackersParameterizedTypeName)
+                .initializer(EVENT_TRACKERS_PROPERTY_NAME)
+                .addModifiers(KModifier.PRIVATE)
+                .build()
 
         //Make class GeneratedEventsAnalyticsImpl
         return TypeSpec.classBuilder(GENERATED_EVENT_ANALYTICS_CLASS_NAME)
             .primaryConstructor(constructorFunSpec)
-            .addSuperinterface(ClassName(GENERATED_EVENT_ANALYTICS_PACKAGE_NAME, GENERATED_EVENT_ANALYTICS_INTERFACE_NAME))
-            .addProperty(eventAnalyticsPropertySpec)
+            .addSuperinterface(ClassName(GENERATED_EVENT_ANALYTICS_PACKAGE_NAME,
+                GENERATED_EVENT_ANALYTICS_INTERFACE_NAME))
+            .addProperty(eventTrackersPropertySpec)
             .addFunctions(funImplSpecs)
             .build()
     }
 
-    private fun buildConstructorFunSpec(eventAnalyticsClassName: ClassName): FunSpec =
+    private fun buildConstructorFunSpec(eventTrackersParameterizedTypeName: ParameterizedTypeName): FunSpec =
         FunSpec.constructorBuilder()
-            .addAnnotation(Inject::class)
-            .addParameter(EVENT_ANALYTICS_PROPERTY_NAME, eventAnalyticsClassName)
+            .addParameter(EVENT_TRACKERS_PROPERTY_NAME, eventTrackersParameterizedTypeName)
             .build()
 
     private fun buildInterfaceTypeSpec(funSpecs: MutableList<FunSpec>): TypeSpec =
@@ -226,8 +230,8 @@ object EventsGenerator {
                 addStatement("val supportedPlatforms = %T()", arrayListOfAnalyticsPlatform)
                 supportedPlatforms.forEach { addAnalyticsPlatform(it) }
             })
-            .addStatement("val trackingEvent = %T(%S, params, supportedPlatforms)", trackingEventClassName, eventName)
-            .addStatement("eventAnalytics.trackEvent(trackingEvent)")
+            .addStatement("val trackingEvent = %T(%S, params)", trackingEventClassName, eventName)
+            .addStatement("eventTrackers.filter·{ it.supportsEventTracking(supportedPlatforms) }.forEach·{ it.trackEvent(trackingEvent) }")
             .build()
 
     private fun Builder.addAnalyticsPlatform(it: String) {
@@ -348,7 +352,8 @@ object EventsGenerator {
         }
     }
 
-    private fun getEventProperties(eventDetails: EventPropertiesMap) = (eventDetails.values.first() as EventPropertiesMap)[PROPERTIES] as EventPropertiesMap
+    private fun getEventProperties(eventDetails: EventPropertiesMap) =
+        (eventDetails.values.first() as EventPropertiesMap)[PROPERTIES] as EventPropertiesMap
 
     private fun getEventDescription(eventDetails: EventPropertiesMap) =
         (eventDetails.values.first() as EventPropertiesMap)[DESCRIPTION] as? String ?: ""
