@@ -17,6 +17,8 @@ import org.yaml.snakeyaml.Yaml
 import java.io.File
 import javax.inject.Inject
 
+private const val PACKAGE_LITICS = "com.deliveryhero.litics"
+
 private const val KOTLIN_COLLECTIONS_PACKAGE_NAME = "kotlin.collections"
 private const val ARRAY_LIST_CLASS_NAME = "ArrayList"
 
@@ -32,7 +34,7 @@ private const val EVENT_ANALYTICS_CLASS_NAME = "EventsAnalytics"
 private const val TRACKING_EVENT_CLASS_NAME = "TrackingEvent"
 
 private const val ANALYTICS_PLATFORM_CLASS_NAME = "AnalyticsPlatform"
-private const val ANALYTICS_PLATFORM_PACKAGE_NAME = "$EVENTS_ANALYTICS_PACKAGE_NAME.$ANALYTICS_PLATFORM_CLASS_NAME"
+private const val ANALYTICS_PLATFORM_PACKAGE_NAME = "$PACKAGE_LITICS.$ANALYTICS_PLATFORM_CLASS_NAME"
 
 private const val DESCRIPTION = "description"
 private const val SUPPORTED_PLATFORMS = "supported_platforms"
@@ -72,7 +74,7 @@ object EventsGenerator {
         val eventAnalytics = ClassName(EVENTS_ANALYTICS_PACKAGE_NAME, EVENT_ANALYTICS_CLASS_NAME)
 
         //import TrackingEvent Class
-        val trackingEvent = ClassName(EVENTS_ANALYTICS_PACKAGE_NAME, TRACKING_EVENT_CLASS_NAME)
+        val trackingEvent = ClassName(PACKAGE_LITICS, TRACKING_EVENT_CLASS_NAME)
 
         val funSpecs = mutableListOf<FunSpec>()
         val funImplSpecs = mutableListOf<FunSpec>()
@@ -218,7 +220,7 @@ object EventsGenerator {
                 }
             })
             .addCode(buildCodeBlock {
-                val platformAnalytics = ClassName(EVENTS_ANALYTICS_PACKAGE_NAME, ANALYTICS_PLATFORM_CLASS_NAME)
+                val platformAnalytics = ClassName(PACKAGE_LITICS, ANALYTICS_PLATFORM_CLASS_NAME)
                 val arrayList = ClassName(KOTLIN_COLLECTIONS_PACKAGE_NAME, ARRAY_LIST_CLASS_NAME)
                 val arrayListOfAnalyticsPlatform = arrayList.parameterizedBy(platformAnalytics)
                 addStatement("val supportedPlatforms = %T()", arrayListOfAnalyticsPlatform)

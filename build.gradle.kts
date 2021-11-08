@@ -1,28 +1,15 @@
 plugins {
-    kotlin("jvm") version "1.5.31"
-    id("maven-publish")
+    kotlin("jvm") version "1.5.31" apply false
 }
 
-group = "com.deliveryhero.litics"
-version = "1.0-SNAPSHOT"
-
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            from(components["kotlin"])
+allprojects {
+    repositories {
+        mavenCentral()
+        maven {
+            url = uri("https://jitpack.io")
         }
     }
-}
 
-repositories {
-    mavenCentral()
-    maven {
-        url = uri("https://jitpack.io")
-    }
-}
-
-dependencies {
-    implementation(gradleApi())
-    implementation("com.squareup:kotlinpoet:1.4.0")
-    implementation("com.github.bmoliveira:snake-yaml:v1.18-android")
+    group = "com.deliveryhero.litics"
+    version = "1.0-SNAPSHOT"
 }
