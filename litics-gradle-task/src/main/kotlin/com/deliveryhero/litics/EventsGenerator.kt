@@ -12,6 +12,7 @@ import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.SET
+import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.buildCodeBlock
@@ -31,9 +32,6 @@ private const val EVENT_TRACKER_CLASS_NAME = "EventTracker"
 private const val EVENT_TRACKERS_PROPERTY_NAME = "eventTrackers"
 
 private const val TRACKING_EVENT_CLASS_NAME = "TrackingEvent"
-
-private const val ANALYTICS_PLATFORM_CLASS_NAME = "AnalyticsPlatform"
-private const val ANALYTICS_PLATFORM_PACKAGE_NAME = "$PACKAGE_LITICS.$ANALYTICS_PLATFORM_CLASS_NAME"
 
 private const val DESCRIPTION = "description"
 private const val SUPPORTED_PLATFORMS = "supported_platforms"
@@ -224,9 +222,8 @@ object EventsGenerator {
                 }
             })
             .addCode(buildCodeBlock {
-                val platformAnalytics = ClassName(PACKAGE_LITICS, ANALYTICS_PLATFORM_CLASS_NAME)
                 val arrayList = ClassName(KOTLIN_COLLECTIONS_PACKAGE_NAME, ARRAY_LIST_CLASS_NAME)
-                val arrayListOfAnalyticsPlatform = arrayList.parameterizedBy(platformAnalytics)
+                val arrayListOfAnalyticsPlatform = arrayList.parameterizedBy(STRING)
                 addStatement("val supportedPlatforms = %T()", arrayListOfAnalyticsPlatform)
                 supportedPlatforms.forEach { addAnalyticsPlatform(it) }
             })
@@ -235,8 +232,7 @@ object EventsGenerator {
             .build()
 
     private fun Builder.addAnalyticsPlatform(it: String) {
-        val analyticsPlatform = ClassName(ANALYTICS_PLATFORM_PACKAGE_NAME, it)
-        addStatement("supportedPlatforms += %T", analyticsPlatform)
+        addStatement("""supportedPlatforms += "%L"""", it)
     }
 
     // The canAddDefault variable is required as overridden methods cannot have default values

@@ -5,7 +5,7 @@ interface EventTracker {
     /**
      * @return true if the tracker supports event tracking
      */
-    fun supportsEventTracking(supportedPlatforms: List<AnalyticsPlatform>): Boolean
+    fun supportsEventTracking(supportedPlatforms: List<String>): Boolean
 
     /**
      * Tracks event
