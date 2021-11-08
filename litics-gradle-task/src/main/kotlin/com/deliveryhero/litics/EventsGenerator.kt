@@ -214,8 +214,9 @@ object EventsGenerator {
             .addCode(buildCodeBlock {
                 funParamsSpecs.forEach {
                     if (it.type.isNullable) {
-                        addStatement("if (%L != null)", it.name)
-                        addStatement("    params[%S] = %L", it.name, it.name)
+                        beginControlFlow("if (%L != null)", it.name)
+                        addStatement("params[%S] = %L", it.name, it.name)
+                        endControlFlow()
                     } else {
                         addStatement("params[%S] = %L", it.name, it.name)
                     }
