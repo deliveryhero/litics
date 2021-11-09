@@ -159,18 +159,12 @@ object EventsGenerator {
     ) {
         //Read event definitions from the given sourceDirectory
         val eventsDefinitions = getEventDefinitions(source)
-        eventsDefinitions.forEach {
-            val eventName = it.eventName
-            val methodName = it.methodName
-            val methodDoc = it.methodDoc
-            val eventParams = it.eventParams
-            val supportedPlatforms = it.supportedPlatforms
-
+        eventsDefinitions.forEach { eventDefinition ->
             val interfaceFunParamsSpecs = mutableListOf<ParameterSpec>()
             val implFunParamSpecs = mutableListOf<ParameterSpec>()
 
             //Make ParamsSpecs for each param provided by definition
-            eventParams.forEach { paramDefinition ->
+            eventDefinition.eventParams.forEach { paramDefinition ->
                 interfaceFunParamsSpecs.add(
                     buildParamSpec(paramDefinition, canAddDefault = true)
                 )
@@ -180,11 +174,17 @@ object EventsGenerator {
             }
 
             //Make fun "methodName" with given params
-            funSpec.add(buildFuncSpec(methodName, methodDoc, interfaceFunParamsSpecs))
+            funSpec.add(buildFuncSpec(eventDefinition.methodName, eventDefinition.methodDoc, interfaceFunParamsSpecs))
 
             //Make fun "methodName" implementation with given params
             funImplSpec.add(
-                buildFuncImplSpec(methodName, eventName, implFunParamSpecs, trackingEventClassName, supportedPlatforms)
+                buildFuncImplSpec(
+                    eventDefinition.methodName,
+                    eventDefinition.eventName,
+                    implFunParamSpecs,
+                    trackingEventClassName,
+                    eventDefinition.supportedPlatforms
+                )
             )
         }
     }
