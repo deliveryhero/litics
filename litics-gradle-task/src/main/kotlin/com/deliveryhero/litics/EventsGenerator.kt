@@ -29,8 +29,6 @@ private const val GENERATED_EVENT_ANALYTICS_CLASS_NAME = "GeneratedEventsAnalyti
 private const val EVENT_TRACKER_CLASS_NAME = "EventTracker"
 private const val EVENT_TRACKERS_PROPERTY_NAME = "eventTrackers"
 
-private const val TRACKING_EVENT_CLASS_NAME = "TrackingEvent"
-
 private const val DESCRIPTION = "description"
 private const val SUPPORTED_PLATFORMS = "supported_platforms"
 private const val PROPERTIES = "properties"
@@ -69,14 +67,11 @@ object EventsGenerator {
         val eventTracker = ClassName(PACKAGE_LITICS, EVENT_TRACKER_CLASS_NAME)
         val eventTrackers = SET.parameterizedBy(eventTracker)
 
-        //import TrackingEvent Class
-        val trackingEvent = ClassName(PACKAGE_LITICS, TRACKING_EVENT_CLASS_NAME)
-
         val funSpecs = mutableListOf<FunSpec>()
         val funImplSpecs = mutableListOf<FunSpec>()
 
         //Make func specs for interface and Impl of that interface
-        buildFunSpecs(sourceDirectory, trackingEvent, funSpecs, funImplSpecs)
+        buildFunSpecs(sourceDirectory, funSpecs, funImplSpecs)
 
         //Make interface GeneratedEventsAnalytics
 
@@ -145,7 +140,6 @@ object EventsGenerator {
 
     private fun buildFunSpecs(
         source: String,
-        trackingEventClassName: ClassName,
         funSpec: MutableList<FunSpec>,
         funImplSpec: MutableList<FunSpec>,
     ) {
@@ -174,7 +168,6 @@ object EventsGenerator {
                     eventDefinition.methodName,
                     eventDefinition.eventName,
                     implFunParamSpecs,
-                    trackingEventClassName,
                     eventDefinition.supportedPlatforms
                 )
             )
@@ -196,7 +189,6 @@ object EventsGenerator {
         methodName: String,
         eventName: String,
         funParamsSpecs: MutableList<ParameterSpec>,
-        trackingEventClassName: ClassName,
         supportedPlatforms: List<String>,
     ): FunSpec =
         FunSpec.builder(methodName)
@@ -219,7 +211,7 @@ object EventsGenerator {
                 val paramCodeBlocks = supportedPlatforms.map { CodeBlock.of("%S", it) }
                 addStatement("val supportedPlatforms = %M(%L)", listOf, paramCodeBlocks.joinToCode())
             })
-            .addStatement("val trackingEvent = %T(%S, params)", trackingEventClassName, eventName)
+            .addStatement("val trackingEvent = %T(%S, params)", ClassName(PACKAGE_LITICS, "TrackingEvent"), eventName)
             .addStatement("eventTrackers.filter·{ it.supportsEventTracking(supportedPlatforms) }.forEach·{ it.trackEvent(trackingEvent) }")
             .build()
 
