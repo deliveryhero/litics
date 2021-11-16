@@ -1,28 +1,26 @@
 package com.deliveryhero.litics
 
 import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.CodeBlock.Builder
+import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.KModifier.ABSTRACT
 import com.squareup.kotlinpoet.KModifier.OVERRIDE
+import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.SET
-import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.buildCodeBlock
+import com.squareup.kotlinpoet.joinToCode
 import java.io.File
 import org.yaml.snakeyaml.Yaml
 
 private const val PACKAGE_LITICS = "com.deliveryhero.litics"
-
-private const val KOTLIN_COLLECTIONS_PACKAGE_NAME = "kotlin.collections"
-private const val ARRAY_LIST_CLASS_NAME = "ArrayList"
 
 private const val GENERATED_EVENT_ANALYTICS_PACKAGE_NAME = "com.deliveryhero.rps.analytics.generated"
 private const val GENERATED_EVENT_ANALYTICS_INTERFACE_NAME = "GeneratedEventsAnalytics"
@@ -223,18 +221,13 @@ object EventsGenerator {
                 }
             })
             .addCode(buildCodeBlock {
-                val arrayList = ClassName(KOTLIN_COLLECTIONS_PACKAGE_NAME, ARRAY_LIST_CLASS_NAME)
-                val arrayListOfAnalyticsPlatform = arrayList.parameterizedBy(STRING)
-                addStatement("val supportedPlatforms = %T()", arrayListOfAnalyticsPlatform)
-                supportedPlatforms.forEach { addAnalyticsPlatform(it) }
+                val listOf = MemberName("kotlin.collections", "listOf")
+                val paramCodeBlocks = supportedPlatforms.map { CodeBlock.of("%S", it) }
+                addStatement("val supportedPlatforms = %M(%L)", listOf, paramCodeBlocks.joinToCode())
             })
             .addStatement("val trackingEvent = %T(%S, params)", trackingEventClassName, eventName)
             .addStatement("eventTrackers.filter·{ it.supportsEventTracking(supportedPlatforms) }.forEach·{ it.trackEvent(trackingEvent) }")
             .build()
-
-    private fun Builder.addAnalyticsPlatform(it: String) {
-        addStatement("""supportedPlatforms += "%L"""", it)
-    }
 
     // The canAddDefault variable is required as overridden methods cannot have default values
     private fun buildParamSpec(paramDefinition: ParamDefinition, canAddDefault: Boolean): ParameterSpec {
