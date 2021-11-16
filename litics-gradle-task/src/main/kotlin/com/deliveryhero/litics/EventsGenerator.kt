@@ -80,7 +80,9 @@ object EventsGenerator {
 
         //Make interface GeneratedEventsAnalytics
 
-        val interfaceTypeSpec = buildInterfaceTypeSpec(funSpecs)
+        val interfaceTypeSpec = TypeSpec.interfaceBuilder(GENERATED_EVENT_ANALYTICS_INTERFACE_NAME)
+            .addFunctions(funSpecs)
+            .build()
 
         //Make class GeneratedEventsAnalyticsImpl which implements GeneratedEventsAnalytics
         val interfaceImplTypeSpec = buildInterfaceImplTypeSpec(eventTrackers, funImplSpecs)
@@ -131,11 +133,6 @@ object EventsGenerator {
             .addFunctions(funImplSpecs)
             .build()
     }
-
-    private fun buildInterfaceTypeSpec(funSpecs: MutableList<FunSpec>): TypeSpec =
-        TypeSpec.interfaceBuilder(GENERATED_EVENT_ANALYTICS_INTERFACE_NAME)
-            .addFunctions(funSpecs)
-            .build()
 
     private fun buildFileSpec(fileName: String, typeSpec: TypeSpec): FileSpec =
         FileSpec.builder(
