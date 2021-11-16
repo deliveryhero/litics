@@ -111,7 +111,9 @@ object EventsGenerator {
     ): TypeSpec {
 
         //Make constructor for GeneratedEventsAnalyticsImpl
-        val constructorFunSpec = buildConstructorFunSpec(eventTrackersParameterizedTypeName)
+        val constructorFunSpec = FunSpec.constructorBuilder()
+            .addParameter(EVENT_TRACKERS_PROPERTY_NAME, eventTrackersParameterizedTypeName)
+            .build()
 
         //Make eventTrackers property for GeneratedEventsAnalyticsImpl
         val eventTrackersPropertySpec =
@@ -129,11 +131,6 @@ object EventsGenerator {
             .addFunctions(funImplSpecs)
             .build()
     }
-
-    private fun buildConstructorFunSpec(eventTrackersParameterizedTypeName: ParameterizedTypeName): FunSpec =
-        FunSpec.constructorBuilder()
-            .addParameter(EVENT_TRACKERS_PROPERTY_NAME, eventTrackersParameterizedTypeName)
-            .build()
 
     private fun buildInterfaceTypeSpec(funSpecs: MutableList<FunSpec>): TypeSpec =
         TypeSpec.interfaceBuilder(GENERATED_EVENT_ANALYTICS_INTERFACE_NAME)
