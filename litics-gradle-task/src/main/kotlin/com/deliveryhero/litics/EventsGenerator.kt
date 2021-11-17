@@ -1,5 +1,6 @@
 package com.deliveryhero.litics
 
+import com.squareup.kotlinpoet.ARRAY
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
@@ -12,7 +13,6 @@ import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
-import com.squareup.kotlinpoet.SET
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.buildCodeBlock
@@ -23,7 +23,7 @@ import org.yaml.snakeyaml.Yaml
 private const val PACKAGE_LITICS = "com.deliveryhero.litics"
 
 private const val GENERATED_EVENT_ANALYTICS_PACKAGE_NAME = "com.deliveryhero.rps.analytics.generated"
-private const val GENERATED_EVENT_ANALYTICS_INTERFACE_NAME = "GeneratedEventsAnalytics"
+private const val GENERATED_EVENT_ANALYTICS_ABSTRACT_CLASS_NAME = "GeneratedEventsAnalytics"
 private const val GENERATED_EVENT_ANALYTICS_CLASS_NAME = "GeneratedEventsAnalyticsImpl"
 
 private const val EVENT_TRACKER_CLASS_NAME = "EventTracker"
@@ -65,7 +65,7 @@ object EventsGenerator {
 
         //import EventTracker Class
         val eventTracker = ClassName(PACKAGE_LITICS, EVENT_TRACKER_CLASS_NAME)
-        val eventTrackers = SET.parameterizedBy(eventTracker)
+        val eventTrackers = ARRAY.parameterizedBy(eventTracker)
 
         val funSpecs = mutableListOf<FunSpec>()
         val funImplSpecs = mutableListOf<FunSpec>()
@@ -75,7 +75,9 @@ object EventsGenerator {
 
         //Make interface GeneratedEventsAnalytics
 
-        val interfaceTypeSpec = TypeSpec.interfaceBuilder(GENERATED_EVENT_ANALYTICS_INTERFACE_NAME)
+        val interfaceTypeSpec = TypeSpec.classBuilder(GENERATED_EVENT_ANALYTICS_ABSTRACT_CLASS_NAME)
+            .addModifiers(ABSTRACT)
+            .addAnnotation(ClassName("kotlin.js", "JsExport"))
             .addFunctions(funSpecs)
             .build()
 
@@ -84,7 +86,7 @@ object EventsGenerator {
 
         //Make the interface file
         val interfaceFileSpec = buildFileSpec(
-            fileName = GENERATED_EVENT_ANALYTICS_INTERFACE_NAME,
+            fileName = GENERATED_EVENT_ANALYTICS_ABSTRACT_CLASS_NAME,
             typeSpec = interfaceTypeSpec
         )
 
@@ -121,9 +123,9 @@ object EventsGenerator {
 
         //Make class GeneratedEventsAnalyticsImpl
         return TypeSpec.classBuilder(GENERATED_EVENT_ANALYTICS_CLASS_NAME)
+            .addAnnotation(ClassName("kotlin.js", "JsExport"))
             .primaryConstructor(constructorFunSpec)
-            .addSuperinterface(ClassName(GENERATED_EVENT_ANALYTICS_PACKAGE_NAME,
-                GENERATED_EVENT_ANALYTICS_INTERFACE_NAME))
+            .superclass(ClassName(GENERATED_EVENT_ANALYTICS_PACKAGE_NAME, GENERATED_EVENT_ANALYTICS_ABSTRACT_CLASS_NAME))
             .addProperty(eventTrackersPropertySpec)
             .addFunctions(funImplSpecs)
             .build()
@@ -190,30 +192,34 @@ object EventsGenerator {
         eventName: String,
         funParamsSpecs: MutableList<ParameterSpec>,
         supportedPlatforms: List<String>,
-    ): FunSpec =
-        FunSpec.builder(methodName)
+    ): FunSpec {
+        val trackingEvent = ClassName(PACKAGE_LITICS, "TrackingEvent")
+        val trackingEventParameter = trackingEvent.nestedClass("Parameter")
+
+        return FunSpec.builder(methodName)
             .addModifiers(OVERRIDE)
             .addParameters(funParamsSpecs)
-            .addStatement("val params = mutableMapOf<String, String>()")
+            .addStatement("val params = mutableListOf<%T>()", trackingEventParameter)
             .addCode(buildCodeBlock {
                 funParamsSpecs.forEach {
                     if (it.type.isNullable) {
                         beginControlFlow("if (%L != null)", it.name)
-                        addStatement("params[%S] = %L", it.name, it.name)
+                        addStatement("params += %T(%S, %L)", trackingEventParameter, it.name, it.name)
                         endControlFlow()
                     } else {
-                        addStatement("params[%S] = %L", it.name, it.name)
+                        addStatement("params += %T(%S, %L)", trackingEventParameter, it.name, it.name)
                     }
                 }
             })
             .addCode(buildCodeBlock {
-                val listOf = MemberName("kotlin.collections", "listOf")
+                val listOf = MemberName("kotlin", "arrayOf")
                 val paramCodeBlocks = supportedPlatforms.map { CodeBlock.of("%S", it) }
                 addStatement("val supportedPlatforms = %M(%L)", listOf, paramCodeBlocks.joinToCode())
             })
-            .addStatement("val trackingEvent = %T(%S, params)", ClassName(PACKAGE_LITICS, "TrackingEvent"), eventName)
+            .addStatement("val trackingEvent = %T(%S, params.toTypedArray())", trackingEvent, eventName)
             .addStatement("eventTrackers.filter·{ it.supportsEventTracking(supportedPlatforms) }.forEach·{ it.trackEvent(trackingEvent) }")
             .build()
+    }
 
     // The canAddDefault variable is required as overridden methods cannot have default values
     private fun buildParamSpec(paramDefinition: ParamDefinition, canAddDefault: Boolean): ParameterSpec {

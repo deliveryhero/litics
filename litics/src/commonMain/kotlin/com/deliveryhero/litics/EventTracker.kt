@@ -1,15 +1,18 @@
 package com.deliveryhero.litics
 
-public interface EventTracker {
+import kotlin.js.JsExport
+
+@JsExport
+public abstract class EventTracker {
 
     /**
      * @return true if the tracker supports event tracking
      */
-    public fun supportsEventTracking(supportedPlatforms: List<String>): Boolean
+    public abstract fun supportsEventTracking(supportedPlatforms: Array<String>): Boolean
 
     /**
      * Tracks event
      * @param trackingEvent - event to be tracked
      */
-    public fun trackEvent(trackingEvent: TrackingEvent)
+    public abstract fun trackEvent(trackingEvent: TrackingEvent)
 }
