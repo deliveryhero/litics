@@ -13,6 +13,6 @@ publishing {
 
 dependencies {
     implementation(gradleApi())
-    implementation("com.squareup:kotlinpoet:1.4.0")
+    implementation("com.squareup:kotlinpoet:1.10.2")
     implementation("com.github.bmoliveira:snake-yaml:v1.18-android")
 }
