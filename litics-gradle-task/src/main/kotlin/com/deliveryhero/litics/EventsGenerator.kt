@@ -22,9 +22,6 @@ import org.yaml.snakeyaml.Yaml
 
 private const val PACKAGE_LITICS = "com.deliveryhero.litics"
 
-private const val GENERATED_EVENT_ANALYTICS_ABSTRACT_CLASS_NAME = "GeneratedEventsAnalytics"
-private const val GENERATED_EVENT_ANALYTICS_CLASS_NAME = "GeneratedEventsAnalyticsImpl"
-
 private const val EVENT_TRACKER_CLASS_NAME = "EventTracker"
 private const val EVENT_TRACKERS_PROPERTY_NAME = "eventTrackers"
 
@@ -72,24 +69,32 @@ object EventsGenerator {
 
         //Make interface GeneratedEventsAnalytics
 
-        val interfaceTypeSpec = TypeSpec.classBuilder(GENERATED_EVENT_ANALYTICS_ABSTRACT_CLASS_NAME)
+        val generatedEventAnalyticsAbstractClass = ClassName(packageName, "GeneratedEventsAnalytics")
+        val generatedEventAnalyticsClass = ClassName(packageName, "GeneratedEventsAnalyticsImpl")
+
+        val interfaceTypeSpec = TypeSpec.classBuilder(generatedEventAnalyticsAbstractClass)
             .addModifiers(ABSTRACT)
             .addAnnotation(ClassName("kotlin.js", "JsExport"))
             .addFunctions(funSpecs)
             .build()
 
         //Make class GeneratedEventsAnalyticsImpl which implements GeneratedEventsAnalytics
-        val interfaceImplTypeSpec = buildInterfaceImplTypeSpec(packageName, eventTrackers, funImplSpecs)
+        val interfaceImplTypeSpec = buildInterfaceImplTypeSpec(
+            generatedEventAnalyticsAbstractClass,
+            generatedEventAnalyticsClass,
+            eventTrackers,
+            funImplSpecs,
+        )
 
         //Make the interface file
         val interfaceFileSpec = FileSpec
-            .builder(packageName, GENERATED_EVENT_ANALYTICS_ABSTRACT_CLASS_NAME)
+            .builder(generatedEventAnalyticsAbstractClass.packageName, generatedEventAnalyticsAbstractClass.simpleName)
             .addType(interfaceTypeSpec)
             .build()
 
         //Make the class file
         val interfaceImplFileSpec = FileSpec
-            .builder(packageName, GENERATED_EVENT_ANALYTICS_CLASS_NAME)
+            .builder(generatedEventAnalyticsClass.packageName, generatedEventAnalyticsClass.simpleName)
             .addType(interfaceImplTypeSpec)
             .build()
 
@@ -102,7 +107,8 @@ object EventsGenerator {
     }
 
     private fun buildInterfaceImplTypeSpec(
-        packageName: String,
+        generatedEventAnalyticsAbstractClass: ClassName,
+        generatedEventAnalyticsClass: ClassName,
         eventTrackersParameterizedTypeName: ParameterizedTypeName,
         funImplSpecs: MutableList<FunSpec>,
     ): TypeSpec {
@@ -120,10 +126,10 @@ object EventsGenerator {
                 .build()
 
         //Make class GeneratedEventsAnalyticsImpl
-        return TypeSpec.classBuilder(GENERATED_EVENT_ANALYTICS_CLASS_NAME)
+        return TypeSpec.classBuilder(generatedEventAnalyticsClass)
             .addAnnotation(ClassName("kotlin.js", "JsExport"))
             .primaryConstructor(constructorFunSpec)
-            .superclass(ClassName(packageName, GENERATED_EVENT_ANALYTICS_ABSTRACT_CLASS_NAME))
+            .superclass(generatedEventAnalyticsAbstractClass)
             .addProperty(eventTrackersPropertySpec)
             .addFunctions(funImplSpecs)
             .build()
