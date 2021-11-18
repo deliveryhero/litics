@@ -269,21 +269,21 @@ object EventsGenerator {
         val eventParams = mutableListOf<ParamDefinition>()
 
         //Read event properties
-        readParamsFromMap(eventProperties, requiredItems) { eventParams += it }
+        eventParams += readParamsFromMap(eventProperties, requiredItems)
 
         //Go to base params file and read properties if any
         if (baseEventParams != null) {
-            resolveBaseParams(file, baseEventParams as EventPropertiesMap, requiredItems) { eventParams += it }
+            eventParams += resolveBaseParams(file, baseEventParams as EventPropertiesMap, requiredItems)
         }
 
         //Go to base order related event file and read properties if any
         if (baseOrderEventParams != null) {
-            resolveBaseParams(file, baseOrderEventParams as EventPropertiesMap, requiredItems) { eventParams += it }
+            eventParams += resolveBaseParams(file, baseOrderEventParams as EventPropertiesMap, requiredItems)
         }
 
         //Go to base vendor check-in related event file and read properties if any
         if (baseVendorCheckInParams != null) {
-            resolveBaseParams(file, baseVendorCheckInParams as EventPropertiesMap, requiredItems) { eventParams += it }
+            eventParams += resolveBaseParams(file, baseVendorCheckInParams as EventPropertiesMap, requiredItems)
         }
 
         return EventDefinition(
@@ -299,34 +299,31 @@ object EventsGenerator {
         file: File,
         baseParams: EventPropertiesMap,
         requiredParams: List<String>,
-        callback: (ParamDefinition) -> Unit,
-    ) {
+    ): List<ParamDefinition> {
         val value = file.resolveSibling(baseParams.values.first() as String)
         val baseEventDetails = Yaml().load(value.inputStream()) as EventPropertiesMap
         val baseEventProperties = getEventProperties(baseEventDetails)
-        readParamsFromMap(baseEventProperties, requiredParams, callback)
+        return readParamsFromMap(baseEventProperties, requiredParams)
     }
 
     private fun readParamsFromMap(
         properties: EventPropertiesMap,
         requiredParams: List<String>,
-        callback: (ParamDefinition) -> Unit,
-    ) {
-        val params = properties[PARAMS] as? EventPropertiesMap
-
-        params?.forEach { (key, value) ->
-            val paramName = key as String
-            val paramTypeMap = value as EventPropertiesMap
-            val paramType = paramTypeMap[TYPE] as String
-            val defaultValue = paramTypeMap[DEFAULT] as String?
-            val paramDefinition = ParamDefinition(
-                paramName = paramName,
-                paramType = paramType,
-                isRequired = requiredParams.contains(paramName),
-                defaultValue = defaultValue,
-            )
-            callback.invoke(paramDefinition)
-        }
+    ): List<ParamDefinition> {
+        return (properties[PARAMS] as? EventPropertiesMap)
+            .orEmpty()
+            .map { (key, value) ->
+                val paramName = key as String
+                val paramTypeMap = value as EventPropertiesMap
+                val paramType = paramTypeMap[TYPE] as String
+                val defaultValue = paramTypeMap[DEFAULT] as String?
+                ParamDefinition(
+                    paramName = paramName,
+                    paramType = paramType,
+                    isRequired = requiredParams.contains(paramName),
+                    defaultValue = defaultValue,
+                )
+            }
     }
 
     private fun getEventProperties(eventDetails: EventPropertiesMap) =
