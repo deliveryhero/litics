@@ -82,18 +82,16 @@ object EventsGenerator {
         val interfaceImplTypeSpec = buildInterfaceImplTypeSpec(packageName, eventTrackers, funImplSpecs)
 
         //Make the interface file
-        val interfaceFileSpec = buildFileSpec(
-            packageName,
-            fileName = GENERATED_EVENT_ANALYTICS_ABSTRACT_CLASS_NAME,
-            typeSpec = interfaceTypeSpec
-        )
+        val interfaceFileSpec = FileSpec
+            .builder(packageName, GENERATED_EVENT_ANALYTICS_ABSTRACT_CLASS_NAME)
+            .addType(interfaceTypeSpec)
+            .build()
 
         //Make the class file
-        val interfaceImplFileSpec = buildFileSpec(
-            packageName,
-            fileName = GENERATED_EVENT_ANALYTICS_CLASS_NAME,
-            typeSpec = interfaceImplTypeSpec
-        )
+        val interfaceImplFileSpec = FileSpec
+            .builder(packageName, GENERATED_EVENT_ANALYTICS_CLASS_NAME)
+            .addType(interfaceImplTypeSpec)
+            .build()
 
         val interfaceFile = File(targetDirectory)
         val interfaceImplFile = File(targetDirectory)
@@ -130,14 +128,6 @@ object EventsGenerator {
             .addFunctions(funImplSpecs)
             .build()
     }
-
-    private fun buildFileSpec(packageName: String, fileName: String, typeSpec: TypeSpec): FileSpec =
-        FileSpec.builder(
-            packageName = packageName,
-            fileName = fileName
-        )
-            .addType(typeSpec)
-            .build()
 
     private fun buildFunSpecs(
         source: String,
