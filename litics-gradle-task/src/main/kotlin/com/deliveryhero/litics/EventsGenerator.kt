@@ -22,7 +22,6 @@ import org.yaml.snakeyaml.Yaml
 
 private const val PACKAGE_LITICS = "com.deliveryhero.litics"
 
-private const val GENERATED_EVENT_ANALYTICS_PACKAGE_NAME = "com.deliveryhero.rps.analytics.generated"
 private const val GENERATED_EVENT_ANALYTICS_ABSTRACT_CLASS_NAME = "GeneratedEventsAnalytics"
 private const val GENERATED_EVENT_ANALYTICS_CLASS_NAME = "GeneratedEventsAnalyticsImpl"
 
@@ -61,7 +60,7 @@ private data class ParamDefinition(
 
 object EventsGenerator {
 
-    fun generate(sourceDirectory: String, targetDirectory: String) {
+    fun generate(packageName: String, sourceDirectory: String, targetDirectory: String) {
 
         //import EventTracker Class
         val eventTracker = ClassName(PACKAGE_LITICS, EVENT_TRACKER_CLASS_NAME)
@@ -82,16 +81,18 @@ object EventsGenerator {
             .build()
 
         //Make class GeneratedEventsAnalyticsImpl which implements GeneratedEventsAnalytics
-        val interfaceImplTypeSpec = buildInterfaceImplTypeSpec(eventTrackers, funImplSpecs)
+        val interfaceImplTypeSpec = buildInterfaceImplTypeSpec(packageName, eventTrackers, funImplSpecs)
 
         //Make the interface file
         val interfaceFileSpec = buildFileSpec(
+            packageName,
             fileName = GENERATED_EVENT_ANALYTICS_ABSTRACT_CLASS_NAME,
             typeSpec = interfaceTypeSpec
         )
 
         //Make the class file
         val interfaceImplFileSpec = buildFileSpec(
+            packageName,
             fileName = GENERATED_EVENT_ANALYTICS_CLASS_NAME,
             typeSpec = interfaceImplTypeSpec
         )
@@ -105,6 +106,7 @@ object EventsGenerator {
     }
 
     private fun buildInterfaceImplTypeSpec(
+        packageName: String,
         eventTrackersParameterizedTypeName: ParameterizedTypeName,
         funImplSpecs: MutableList<FunSpec>,
     ): TypeSpec {
@@ -125,15 +127,15 @@ object EventsGenerator {
         return TypeSpec.classBuilder(GENERATED_EVENT_ANALYTICS_CLASS_NAME)
             .addAnnotation(ClassName("kotlin.js", "JsExport"))
             .primaryConstructor(constructorFunSpec)
-            .superclass(ClassName(GENERATED_EVENT_ANALYTICS_PACKAGE_NAME, GENERATED_EVENT_ANALYTICS_ABSTRACT_CLASS_NAME))
+            .superclass(ClassName(packageName, GENERATED_EVENT_ANALYTICS_ABSTRACT_CLASS_NAME))
             .addProperty(eventTrackersPropertySpec)
             .addFunctions(funImplSpecs)
             .build()
     }
 
-    private fun buildFileSpec(fileName: String, typeSpec: TypeSpec): FileSpec =
+    private fun buildFileSpec(packageName: String, fileName: String, typeSpec: TypeSpec): FileSpec =
         FileSpec.builder(
-            packageName = GENERATED_EVENT_ANALYTICS_PACKAGE_NAME,
+            packageName = packageName,
             fileName = fileName
         )
             .addType(typeSpec)
