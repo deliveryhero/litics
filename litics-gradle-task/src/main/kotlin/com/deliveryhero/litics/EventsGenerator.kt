@@ -39,8 +39,6 @@ private const val BASE_EVENT_PARAMS = "base_event_params"
 private const val BASE_ORDER_EVENT_PARAMS = "base_order_event_params"
 private const val BASE_VENDOR_CHECK_IN_EVENT_PARAMS = "base_vendor_checkin_event_params"
 
-private const val INDENT = "    "
-
 private typealias EventPropertiesMap = Map<*, *>
 
 private data class EventDefinition(
@@ -139,7 +137,6 @@ object EventsGenerator {
             fileName = fileName
         )
             .addType(typeSpec)
-            .indent(INDENT)
             .build()
 
     private fun buildFunSpecs(
