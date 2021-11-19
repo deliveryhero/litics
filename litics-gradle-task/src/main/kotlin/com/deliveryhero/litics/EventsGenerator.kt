@@ -207,9 +207,9 @@ object EventsGenerator {
                 }
             })
             .addCode(buildCodeBlock {
-                val listOf = MemberName("kotlin", "arrayOf")
+                val arrayOf = MemberName("kotlin", "arrayOf")
                 val paramCodeBlocks = supportedPlatforms.map { CodeBlock.of("%S", it) }
-                addStatement("val supportedPlatforms = %M(%L)", listOf, paramCodeBlocks.joinToCode())
+                addStatement("val supportedPlatforms = %M(%L)", arrayOf, paramCodeBlocks.joinToCode())
             })
             .addStatement("val trackingEvent = %T(%S, params.toTypedArray())", trackingEvent, eventName)
             .addStatement("eventTrackers.filter·{ it.supportsEventTracking(supportedPlatforms) }.forEach·{ it.trackEvent(trackingEvent) }")
