@@ -28,7 +28,7 @@ private const val EVENT_TRACKERS_PROPERTY_NAME = "eventTrackers"
 private data class EventDefinition(
     val methodName: String,
     val methodDoc: String,
-    val eventName: String,
+    val name: String,
     val eventParams: List<ParamDefinition>,
     val supportedPlatforms: List<String>,
 )
@@ -150,7 +150,7 @@ object EventsGenerator {
             funImplSpec.add(
                 buildFuncImplSpec(
                     eventDefinition.methodName,
-                    eventDefinition.eventName,
+                    eventDefinition.name,
                     implFunParamSpecs,
                     eventDefinition.supportedPlatforms
                 )
@@ -226,7 +226,7 @@ object EventsGenerator {
         val (methodName, eventDetails) = (Yaml().load(file.inputStream()) as Map<String, *>).entries.single().toPair()
 
         //Get event properties key form the map
-        val eventProperties = (eventDetails as Map<String, Map<String, *>>).getValue("properties")
+        val eventProperties = (eventDetails as Map<String, Map<String, *>>)["properties"].orEmpty()
 
         //Get required items for the event
         val requiredItems = (eventDetails as Map<String, List<String>>)["required"].orEmpty()
@@ -258,7 +258,7 @@ object EventsGenerator {
         return EventDefinition(
             methodName = methodName,
             methodDoc = (eventDetails as Map<String, String>)["description"].orEmpty(),
-            eventName = eventProperties.keys.first(),
+            name = (eventDetails as Map<String, String>).getValue("name"),
             eventParams = readParamsFromMap(eventProperties)
                 .plus(listOfNotNull(eventProperties["base_event_params"]?.let { baseEventParams -> resolveBaseParams(baseEventParams as Map<String, String>) }).flatten())
                 .plus(listOfNotNull(eventProperties["base_order_event_params"]?.let { baseOrderEventParams -> resolveBaseParams(baseOrderEventParams as Map<String, String>) }).flatten())
