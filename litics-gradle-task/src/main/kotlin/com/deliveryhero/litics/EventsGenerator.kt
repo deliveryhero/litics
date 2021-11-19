@@ -25,22 +25,9 @@ private const val PACKAGE_LITICS = "com.deliveryhero.litics"
 private const val EVENT_TRACKER_CLASS_NAME = "EventTracker"
 private const val EVENT_TRACKERS_PROPERTY_NAME = "eventTrackers"
 
-private const val DESCRIPTION = "description"
-private const val SUPPORTED_PLATFORMS = "supported_platforms"
-private const val PROPERTIES = "properties"
-private const val REQUIRED = "required"
-private const val TYPE = "type"
-private const val DEFAULT = "default"
-private const val PARAMS = "params"
-private const val BASE_EVENT_PARAMS = "base_event_params"
-private const val BASE_ORDER_EVENT_PARAMS = "base_order_event_params"
-private const val BASE_VENDOR_CHECK_IN_EVENT_PARAMS = "base_vendor_checkin_event_params"
-
-private typealias EventPropertiesMap = Map<*, *>
-
 private data class EventDefinition(
     val methodName: String,
-    val methodDoc: String = "",
+    val methodDoc: String,
     val eventName: String,
     val eventParams: List<ParamDefinition>,
     val supportedPlatforms: List<String>,
@@ -236,107 +223,47 @@ object EventsGenerator {
 
     private fun buildEventDefinition(file: File): EventDefinition {
         //Load event definition as a map
-        val eventDetails = Yaml().load(file.inputStream()) as EventPropertiesMap
-
-        //First key is the methodName
-        val methodName = eventDetails.keys.first() as String
+        val (methodName, eventDetails) = (Yaml().load(file.inputStream()) as Map<String, *>).entries.single().toPair()
 
         //Get event properties key form the map
-        val methodDoc = getEventDescription(eventDetails)
-
-        //Get event properties key form the map
-        val eventProperties = getEventProperties(eventDetails)
+        val eventProperties = (eventDetails as Map<String, Map<String, *>>).getValue("properties")
 
         //Get required items for the event
-        val requiredItems = getEventRequiredProperties(eventDetails)
+        val requiredItems = (eventDetails as Map<String, List<String>>)["required"].orEmpty()
 
-        //Get support analytics platforms for the event
-        val supportedPlatforms = getEventSupportedPlatforms(eventDetails)
-
-        //First key of properties is the eventName
-        val eventName = eventProperties.keys.first() as String
-
-        //Get base params that need to be sent for each event
-        val baseEventParams = eventProperties[BASE_EVENT_PARAMS]
-
-        //Get base params that need to be sent for each order related event
-        val baseOrderEventParams = eventProperties[BASE_ORDER_EVENT_PARAMS]
-
-        //Get base params that need to be sent for each vendor check-in related event
-        val baseVendorCheckInParams = eventProperties[BASE_VENDOR_CHECK_IN_EVENT_PARAMS]
-
-        val eventParams = mutableListOf<ParamDefinition>()
-
-        //Read event properties
-        eventParams += readParamsFromMap(eventProperties, requiredItems)
-
-        //Go to base params file and read properties if any
-        if (baseEventParams != null) {
-            eventParams += resolveBaseParams(file, baseEventParams as EventPropertiesMap, requiredItems)
+        fun readParamsFromMap(
+            properties: Map<String, *>,
+        ): List<ParamDefinition> {
+            return (properties["params"] as? Map<String, Map<String?, String>>)
+                .orEmpty()
+                .map { (paramName, paramTypeMap) ->
+                    ParamDefinition(
+                        paramName = paramName,
+                        paramType = paramTypeMap.getValue("type"),
+                        isRequired = requiredItems.contains(paramName),
+                        defaultValue = paramTypeMap["default"],
+                    )
+                }
         }
 
-        //Go to base order related event file and read properties if any
-        if (baseOrderEventParams != null) {
-            eventParams += resolveBaseParams(file, baseOrderEventParams as EventPropertiesMap, requiredItems)
-        }
-
-        //Go to base vendor check-in related event file and read properties if any
-        if (baseVendorCheckInParams != null) {
-            eventParams += resolveBaseParams(file, baseVendorCheckInParams as EventPropertiesMap, requiredItems)
+        fun resolveBaseParams(
+            baseParams: Map<String, String>,
+        ): List<ParamDefinition> {
+            val value = file.resolveSibling(baseParams.values.first())
+            val baseEventDetails = (Yaml().load(value.inputStream()) as Map<String, Map<String, Map<String, *>>>).entries.single().toPair()
+            val baseEventProperties = baseEventDetails.second.getValue("properties")
+            return readParamsFromMap(baseEventProperties)
         }
 
         return EventDefinition(
             methodName = methodName,
-            methodDoc = methodDoc,
-            eventName = eventName,
-            eventParams = eventParams,
-            supportedPlatforms = supportedPlatforms
+            methodDoc = (eventDetails as Map<String, String>)["description"].orEmpty(),
+            eventName = eventProperties.keys.first(),
+            eventParams = readParamsFromMap(eventProperties)
+                .plus(listOfNotNull(eventProperties["base_event_params"]?.let { baseEventParams -> resolveBaseParams(baseEventParams as Map<String, String>) }).flatten())
+                .plus(listOfNotNull(eventProperties["base_order_event_params"]?.let { baseOrderEventParams -> resolveBaseParams(baseOrderEventParams as Map<String, String>) }).flatten())
+                .plus(listOfNotNull(eventProperties["base_vendor_checkin_event_params"]?.let { baseVendorCheckInParams -> resolveBaseParams(baseVendorCheckInParams as Map<String, String>) }).flatten()),
+            supportedPlatforms = (eventDetails as Map<String, List<String>>).getValue("supported_platforms")
         )
     }
-
-    private fun resolveBaseParams(
-        file: File,
-        baseParams: EventPropertiesMap,
-        requiredParams: List<String>,
-    ): List<ParamDefinition> {
-        val value = file.resolveSibling(baseParams.values.first() as String)
-        val baseEventDetails = Yaml().load(value.inputStream()) as EventPropertiesMap
-        val baseEventProperties = getEventProperties(baseEventDetails)
-        return readParamsFromMap(baseEventProperties, requiredParams)
-    }
-
-    private fun readParamsFromMap(
-        properties: EventPropertiesMap,
-        requiredParams: List<String>,
-    ): List<ParamDefinition> {
-        return (properties[PARAMS] as? EventPropertiesMap)
-            .orEmpty()
-            .map { (key, value) ->
-                val paramName = key as String
-                val paramTypeMap = value as EventPropertiesMap
-                val paramType = paramTypeMap[TYPE] as String
-                val defaultValue = paramTypeMap[DEFAULT] as String?
-                ParamDefinition(
-                    paramName = paramName,
-                    paramType = paramType,
-                    isRequired = requiredParams.contains(paramName),
-                    defaultValue = defaultValue,
-                )
-            }
-    }
-
-    private fun getEventProperties(eventDetails: EventPropertiesMap) =
-        (eventDetails.values.first() as EventPropertiesMap)[PROPERTIES] as EventPropertiesMap
-
-    private fun getEventDescription(eventDetails: EventPropertiesMap) =
-        (eventDetails.values.first() as EventPropertiesMap)[DESCRIPTION] as? String ?: ""
-
-    @Suppress("UNCHECKED_CAST")
-    private fun getEventRequiredProperties(eventDetails: EventPropertiesMap) =
-        (eventDetails.values.first() as EventPropertiesMap)[REQUIRED]
-            ?.let { it as List<String> } ?: listOf()
-
-    @Suppress("UNCHECKED_CAST")
-    private fun getEventSupportedPlatforms(eventDetails: EventPropertiesMap): List<String> =
-        (eventDetails.values.first() as EventPropertiesMap)[SUPPORTED_PLATFORMS] as List<String>
 }
