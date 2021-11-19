@@ -235,7 +235,6 @@ object EventsGenerator {
         File(source).listFiles()?.map(this::buildEventDefinition) ?: emptyList()
 
     private fun buildEventDefinition(file: File): EventDefinition {
-        println("buildEventDefinition for file -> $file")
         //Load event definition as a map
         val eventDetails = Yaml().load(file.inputStream()) as EventPropertiesMap
 
