@@ -78,20 +78,15 @@ private data class ParamDefinition(
 object EventsGenerator {
 
     fun generate(packageName: String, sourceFile: File, targetDirectory: File) {
-
-        //import EventTracker Class
-        val eventTracker = ClassName(PACKAGE_LITICS, EVENT_TRACKER_CLASS_NAME)
-        val eventTrackers = ARRAY.parameterizedBy(eventTracker)
-
-        //Make func specs for interface and Impl of that interface
         val eventDefinitions = buildEventDefinitions(sourceFile)
-        val funSpecs = buildFunSpecs(eventDefinitions)
-        val funImplSpecs = buildFunImplSpecs(eventDefinitions)
-
-        //Make interface GeneratedEventsAnalytics
-
         val generatedEventAnalyticsAbstractClass = ClassName(packageName, "GeneratedEventsAnalytics")
-        val generatedEventAnalyticsClass = ClassName(packageName, "GeneratedEventsAnalyticsImpl")
+
+        createGeneratedEventsAnalyticsFileSpec(packageName, eventDefinitions, generatedEventAnalyticsAbstractClass).writeTo(targetDirectory)
+        createGeneratedEventsAnalyticsImplFileSpec(packageName, eventDefinitions, generatedEventAnalyticsAbstractClass).writeTo(targetDirectory)
+    }
+
+    private fun createGeneratedEventsAnalyticsFileSpec(packageName: String, eventDefinitions: List<EventDefinition>, generatedEventAnalyticsAbstractClass: ClassName): FileSpec {
+        val funSpecs = buildFunSpecs(eventDefinitions)
 
         val interfaceTypeSpec = TypeSpec.classBuilder(generatedEventAnalyticsAbstractClass)
             .addModifiers(ABSTRACT)
@@ -99,29 +94,29 @@ object EventsGenerator {
             .addFunctions(funSpecs)
             .build()
 
-        //Make class GeneratedEventsAnalyticsImpl which implements GeneratedEventsAnalytics
+        return FileSpec
+            .builder(generatedEventAnalyticsAbstractClass.packageName, generatedEventAnalyticsAbstractClass.simpleName)
+            .addType(interfaceTypeSpec)
+            .build()
+    }
+
+    private fun createGeneratedEventsAnalyticsImplFileSpec(packageName: String, eventDefinitions: List<EventDefinition>, generatedEventAnalyticsAbstractClass: ClassName): FileSpec {
+        val eventTracker = ClassName(PACKAGE_LITICS, EVENT_TRACKER_CLASS_NAME)
+        val eventTrackers = ARRAY.parameterizedBy(eventTracker)
+
+        val generatedEventAnalyticsClass = ClassName(packageName, "GeneratedEventsAnalyticsImpl")
+
         val interfaceImplTypeSpec = buildInterfaceImplTypeSpec(
             generatedEventAnalyticsAbstractClass,
             generatedEventAnalyticsClass,
             eventTrackers,
-            funImplSpecs,
+            buildFunImplSpecs(eventDefinitions),
         )
 
-        //Make the interface file
-        val interfaceFileSpec = FileSpec
-            .builder(generatedEventAnalyticsAbstractClass.packageName, generatedEventAnalyticsAbstractClass.simpleName)
-            .addType(interfaceTypeSpec)
-            .build()
-
-        //Make the class file
-        val interfaceImplFileSpec = FileSpec
+        return FileSpec
             .builder(generatedEventAnalyticsClass.packageName, generatedEventAnalyticsClass.simpleName)
             .addType(interfaceImplTypeSpec)
             .build()
-
-        //Write files to given directory
-        interfaceFileSpec.writeTo(targetDirectory)
-        interfaceImplFileSpec.writeTo(targetDirectory)
     }
 
     private fun buildInterfaceImplTypeSpec(
