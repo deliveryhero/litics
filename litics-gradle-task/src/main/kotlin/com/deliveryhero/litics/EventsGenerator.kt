@@ -69,6 +69,7 @@ private data class EventDefinition(
 
 private data class ParamDefinition(
     val name: String,
+    val kdoc: String?,
     val type: String,
     val isRequired: Boolean,
     val defaultValue: String?,
@@ -231,6 +232,10 @@ object EventsGenerator {
                 type = STRING.copy(nullable = !paramDefinition.isRequired)
             )
 
+        if (paramDefinition.kdoc != null) {
+            builder.addKdoc(paramDefinition.kdoc)
+        }
+
         if (paramDefinition.defaultValue != null && canAddDefault) {
             builder.defaultValue(paramDefinition.defaultValue)
         }
@@ -250,6 +255,7 @@ object EventsGenerator {
                         .map { (parameterName, parameter) ->
                             ParamDefinition(
                                 name = parameterName,
+                                kdoc = parameter.description,
                                 type = parameter.type,
                                 isRequired = parameter.required,
                                 defaultValue = parameter.default,
