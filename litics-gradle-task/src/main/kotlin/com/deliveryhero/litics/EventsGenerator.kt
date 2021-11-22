@@ -1,5 +1,6 @@
 package com.deliveryhero.litics
 
+import com.charleskorn.kaml.Yaml
 import com.squareup.kotlinpoet.ARRAY
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
@@ -18,24 +19,49 @@ import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.buildCodeBlock
 import com.squareup.kotlinpoet.joinToCode
 import java.io.File
-import org.yaml.snakeyaml.Yaml
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.MapEntrySerializer
+import kotlinx.serialization.builtins.serializer
 
 private const val PACKAGE_LITICS = "com.deliveryhero.litics"
 
 private const val EVENT_TRACKER_CLASS_NAME = "EventTracker"
 private const val EVENT_TRACKERS_PROPERTY_NAME = "eventTrackers"
 
+@Serializable
+data class Event(
+    val name: String,
+    val description: String,
+    @SerialName("supported_platforms")
+    val supportedPlatforms: List<String>,
+    val required: List<String> = emptyList(),
+    @SerialName("base_parameters")
+    val baseParameters: List<String> = emptyList(),
+    val parameters: Map<String, Parameter> = emptyMap(),
+) {
+
+    @Serializable
+    data class Parameter(
+        val description: String? = null,
+        val type: String,
+        val default: String? = null,
+        val example: String? = null,
+        val enum: List<String>? = null,
+    )
+}
+
 private data class EventDefinition(
     val methodName: String,
     val methodDoc: String,
     val name: String,
-    val eventParams: List<ParamDefinition>,
+    val parameters: List<ParamDefinition>,
     val supportedPlatforms: List<String>,
 )
 
 private data class ParamDefinition(
-    val paramName: String,
-    val paramType: String,
+    val name: String,
+    val type: String,
     val isRequired: Boolean,
     val defaultValue: String?,
 )
@@ -134,7 +160,7 @@ object EventsGenerator {
             val implFunParamSpecs = mutableListOf<ParameterSpec>()
 
             //Make ParamsSpecs for each param provided by definition
-            eventDefinition.eventParams.forEach { paramDefinition ->
+            eventDefinition.parameters.forEach { paramDefinition ->
                 interfaceFunParamsSpecs.add(
                     buildParamSpec(paramDefinition, canAddDefault = true)
                 )
@@ -207,7 +233,7 @@ object EventsGenerator {
     private fun buildParamSpec(paramDefinition: ParamDefinition, canAddDefault: Boolean): ParameterSpec {
         val builder = ParameterSpec
             .builder(
-                name = paramDefinition.paramName,
+                name = paramDefinition.name,
                 type = String::class.asTypeName().copy(nullable = !paramDefinition.isRequired)
             )
 
@@ -222,48 +248,41 @@ object EventsGenerator {
         File(source).listFiles()?.map(this::buildEventDefinition) ?: emptyList()
 
     private fun buildEventDefinition(file: File): EventDefinition {
-        //Load event definition as a map
-        val (methodName, eventDetails) = (Yaml().load(file.inputStream()) as Map<String, *>).entries.single().toPair()
+        val yaml = Yaml.default
 
-        //Get event properties key form the map
-        val eventProperties = (eventDetails as Map<String, Map<String, *>>)["properties"].orEmpty()
+        println(file)
 
-        //Get required items for the event
-        val requiredItems = (eventDetails as Map<String, List<String>>)["required"].orEmpty()
+        val (methodName, event) = yaml.decodeFromStream(MapEntrySerializer(String.serializer(), Event.serializer()), file.inputStream())
 
         fun readParamsFromMap(
-            properties: Map<String, *>,
+            parameters: Map<String, Event.Parameter>,
         ): List<ParamDefinition> {
-            return (properties["params"] as? Map<String, Map<String?, String>>)
-                .orEmpty()
-                .map { (paramName, paramTypeMap) ->
+            return parameters
+                .map { (parameterName, parameter) ->
                     ParamDefinition(
-                        paramName = paramName,
-                        paramType = paramTypeMap.getValue("type"),
-                        isRequired = requiredItems.contains(paramName),
-                        defaultValue = paramTypeMap["default"],
+                        name = parameterName,
+                        type = parameter.type,
+                        isRequired = parameterName in event.required,
+                        defaultValue = parameter.default,
                     )
                 }
         }
 
         fun resolveBaseParams(
-            baseParams: Map<String, String>,
+            baseParamsFileName: String,
         ): List<ParamDefinition> {
-            val value = file.resolveSibling(baseParams.values.first())
-            val baseEventDetails = (Yaml().load(value.inputStream()) as Map<String, Map<String, Map<String, *>>>).entries.single().toPair()
-            val baseEventProperties = baseEventDetails.second.getValue("properties")
-            return readParamsFromMap(baseEventProperties)
+            val value = file.resolveSibling(baseParamsFileName)
+            val baseParameters = yaml.decodeFromStream(MapEntrySerializer(String.serializer(), Event.serializer()), value.inputStream()).value.parameters
+            return readParamsFromMap(baseParameters)
         }
 
         return EventDefinition(
             methodName = methodName,
-            methodDoc = (eventDetails as Map<String, String>)["description"].orEmpty(),
-            name = (eventDetails as Map<String, String>).getValue("name"),
-            eventParams = readParamsFromMap(eventProperties)
-                .plus(listOfNotNull(eventProperties["base_event_params"]?.let { baseEventParams -> resolveBaseParams(baseEventParams as Map<String, String>) }).flatten())
-                .plus(listOfNotNull(eventProperties["base_order_event_params"]?.let { baseOrderEventParams -> resolveBaseParams(baseOrderEventParams as Map<String, String>) }).flatten())
-                .plus(listOfNotNull(eventProperties["base_vendor_checkin_event_params"]?.let { baseVendorCheckInParams -> resolveBaseParams(baseVendorCheckInParams as Map<String, String>) }).flatten()),
-            supportedPlatforms = (eventDetails as Map<String, List<String>>).getValue("supported_platforms")
+            methodDoc = event.description,
+            name = event.name,
+            parameters = readParamsFromMap(event.parameters)
+                + event.baseParameters.flatMap { resolveBaseParams(it) },
+            supportedPlatforms = event.supportedPlatforms
         )
     }
 }
