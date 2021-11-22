@@ -22,6 +22,7 @@ import java.io.File
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapEntrySerializer
+import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 
 private const val PACKAGE_LITICS = "com.deliveryhero.litics"
@@ -245,44 +246,46 @@ object EventsGenerator {
     }
 
     private fun getEventDefinitions(source: String): List<EventDefinition> =
-        File(source).listFiles()?.map(this::buildEventDefinition) ?: emptyList()
+        File(source).listFiles()?.flatMap(this::buildEventDefinition) ?: emptyList()
 
-    private fun buildEventDefinition(file: File): EventDefinition {
+    private fun buildEventDefinition(file: File): List<EventDefinition> {
         val yaml = Yaml.default
 
-        println(file)
-
-        val (methodName, event) = yaml.decodeFromStream(MapEntrySerializer(String.serializer(), Event.serializer()), file.inputStream())
+        val methodNameToEvents = yaml.decodeFromStream(MapSerializer(String.serializer(), Event.serializer()), file.inputStream())
 
         fun readParamsFromMap(
             parameters: Map<String, Event.Parameter>,
+            required: List<String>,
         ): List<ParamDefinition> {
             return parameters
                 .map { (parameterName, parameter) ->
                     ParamDefinition(
                         name = parameterName,
                         type = parameter.type,
-                        isRequired = parameterName in event.required,
+                        isRequired = parameterName in required,
                         defaultValue = parameter.default,
                     )
                 }
         }
 
-        fun resolveBaseParams(
-            baseParamsFileName: String,
-        ): List<ParamDefinition> {
-            val value = file.resolveSibling(baseParamsFileName)
-            val baseParameters = yaml.decodeFromStream(MapEntrySerializer(String.serializer(), Event.serializer()), value.inputStream()).value.parameters
-            return readParamsFromMap(baseParameters)
-        }
+        return methodNameToEvents
+            .map { (methodName, event) ->
+                fun resolveBaseParams(
+                    baseParamsFileName: String,
+                ): List<ParamDefinition> {
+                    val value = file.resolveSibling(baseParamsFileName)
+                    val baseParameters = yaml.decodeFromStream(MapEntrySerializer(String.serializer(), Event.serializer()), value.inputStream()).value.parameters
+                    return readParamsFromMap(baseParameters, event.required)
+                }
 
-        return EventDefinition(
-            methodName = methodName,
-            methodDoc = event.description,
-            name = event.name,
-            parameters = readParamsFromMap(event.parameters)
-                + event.baseParameters.flatMap { resolveBaseParams(it) },
-            supportedPlatforms = event.supportedPlatforms
-        )
+                EventDefinition(
+                    methodName = methodName,
+                    methodDoc = event.description,
+                    name = event.name,
+                    parameters = readParamsFromMap(event.parameters, event.required)
+                        + event.baseParameters.flatMap { resolveBaseParams(it) },
+                    supportedPlatforms = event.supportedPlatforms
+                )
+            }
     }
 }
