@@ -45,7 +45,6 @@ data class Event(
     val description: String,
     @SerialName("supported_platforms")
     val supportedPlatforms: List<String>,
-    val required: List<String> = emptyList(),
     val parameters: Map<String, Parameter> = emptyMap(),
 ) {
 
@@ -53,6 +52,7 @@ data class Event(
     data class Parameter(
         val description: String? = null,
         val type: String,
+        val required: Boolean,
         val default: String? = null,
         val example: String? = null,
         val enum: List<String>? = null,
@@ -250,7 +250,7 @@ object EventsGenerator {
                             ParamDefinition(
                                 name = parameterName,
                                 type = parameter.type,
-                                isRequired = parameterName in event.required,
+                                isRequired = parameter.required,
                                 defaultValue = parameter.default,
                             )
                         },
