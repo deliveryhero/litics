@@ -21,14 +21,23 @@ import com.squareup.kotlinpoet.joinToCode
 import java.io.File
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.MapEntrySerializer
-import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.builtins.serializer
 
 private const val PACKAGE_LITICS = "com.deliveryhero.litics"
 
 private const val EVENT_TRACKER_CLASS_NAME = "EventTracker"
 private const val EVENT_TRACKERS_PROPERTY_NAME = "eventTrackers"
+
+@Serializable
+data class Events(
+    val components: Components = Components(),
+    @SerialName("events")
+    val methodNameToEvents: Map<String, Event>,
+)
+
+@Serializable
+data class Components(
+    val parameters: Map<String, Map<String, Event.Parameter>> = emptyMap(),
+)
 
 @Serializable
 data class Event(
@@ -37,8 +46,6 @@ data class Event(
     @SerialName("supported_platforms")
     val supportedPlatforms: List<String>,
     val required: List<String> = emptyList(),
-    @SerialName("base_parameters")
-    val baseParameters: List<String> = emptyList(),
     val parameters: Map<String, Parameter> = emptyMap(),
 ) {
 
@@ -69,7 +76,7 @@ private data class ParamDefinition(
 
 object EventsGenerator {
 
-    fun generate(packageName: String, sourceDirectory: String, targetDirectory: String) {
+    fun generate(packageName: String, sourceFile: String, targetDirectory: String) {
 
         //import EventTracker Class
         val eventTracker = ClassName(PACKAGE_LITICS, EVENT_TRACKER_CLASS_NAME)
@@ -79,7 +86,7 @@ object EventsGenerator {
         val funImplSpecs = mutableListOf<FunSpec>()
 
         //Make func specs for interface and Impl of that interface
-        buildFunSpecs(sourceDirectory, funSpecs, funImplSpecs)
+        buildFunSpecs(sourceFile, funSpecs, funImplSpecs)
 
         //Make interface GeneratedEventsAnalytics
 
@@ -150,12 +157,12 @@ object EventsGenerator {
     }
 
     private fun buildFunSpecs(
-        source: String,
+        sourceFile: String,
         funSpec: MutableList<FunSpec>,
         funImplSpec: MutableList<FunSpec>,
     ) {
         //Read event definitions from the given sourceDirectory
-        val eventsDefinitions = getEventDefinitions(source)
+        val eventsDefinitions = buildEventDefinitions(File(sourceFile))
         eventsDefinitions.forEach { eventDefinition ->
             val interfaceFunParamsSpecs = mutableListOf<ParameterSpec>()
             val implFunParamSpecs = mutableListOf<ParameterSpec>()
@@ -245,45 +252,23 @@ object EventsGenerator {
         return builder.build()
     }
 
-    private fun getEventDefinitions(source: String): List<EventDefinition> =
-        File(source).listFiles()?.flatMap(this::buildEventDefinition) ?: emptyList()
-
-    private fun buildEventDefinition(file: File): List<EventDefinition> {
-        val yaml = Yaml.default
-
-        val methodNameToEvents = yaml.decodeFromStream(MapSerializer(String.serializer(), Event.serializer()), file.inputStream())
-
-        fun readParamsFromMap(
-            parameters: Map<String, Event.Parameter>,
-            required: List<String>,
-        ): List<ParamDefinition> {
-            return parameters
-                .map { (parameterName, parameter) ->
-                    ParamDefinition(
-                        name = parameterName,
-                        type = parameter.type,
-                        isRequired = parameterName in required,
-                        defaultValue = parameter.default,
-                    )
-                }
-        }
-
-        return methodNameToEvents
+    private fun buildEventDefinitions(file: File): List<EventDefinition> {
+        return Yaml.default.decodeFromStream(Events.serializer(), file.inputStream())
+            .methodNameToEvents
             .map { (methodName, event) ->
-                fun resolveBaseParams(
-                    baseParamsFileName: String,
-                ): List<ParamDefinition> {
-                    val value = file.resolveSibling(baseParamsFileName)
-                    val baseParameters = yaml.decodeFromStream(MapEntrySerializer(String.serializer(), Event.serializer()), value.inputStream()).value.parameters
-                    return readParamsFromMap(baseParameters, event.required)
-                }
-
                 EventDefinition(
                     methodName = methodName,
                     methodDoc = event.description,
                     name = event.name,
-                    parameters = readParamsFromMap(event.parameters, event.required)
-                        + event.baseParameters.flatMap { resolveBaseParams(it) },
+                    parameters = event.parameters
+                        .map { (parameterName, parameter) ->
+                            ParamDefinition(
+                                name = parameterName,
+                                type = parameter.type,
+                                isRequired = parameterName in event.required,
+                                defaultValue = parameter.default,
+                            )
+                        },
                     supportedPlatforms = event.supportedPlatforms
                 )
             }
