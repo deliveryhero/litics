@@ -83,8 +83,9 @@ object EventsGenerator {
         val eventTrackers = ARRAY.parameterizedBy(eventTracker)
 
         //Make func specs for interface and Impl of that interface
-        val funSpecs = buildFunSpecs(buildEventDefinitions(sourceFile))
-        val funImplSpecs = buildFunImplSpecs(buildEventDefinitions(sourceFile))
+        val eventDefinitions = buildEventDefinitions(sourceFile)
+        val funSpecs = buildFunSpecs(eventDefinitions)
+        val funImplSpecs = buildFunImplSpecs(eventDefinitions)
 
         //Make interface GeneratedEventsAnalytics
 
