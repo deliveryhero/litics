@@ -14,8 +14,8 @@ import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeSpec
-import com.squareup.kotlinpoet.asTypeName
 import com.squareup.kotlinpoet.buildCodeBlock
 import com.squareup.kotlinpoet.joinToCode
 import java.io.File
@@ -227,7 +227,7 @@ object EventsGenerator {
         val builder = ParameterSpec
             .builder(
                 name = paramDefinition.name,
-                type = String::class.asTypeName().copy(nullable = !paramDefinition.isRequired)
+                type = STRING.copy(nullable = !paramDefinition.isRequired)
             )
 
         if (paramDefinition.defaultValue != null && canAddDefault) {
