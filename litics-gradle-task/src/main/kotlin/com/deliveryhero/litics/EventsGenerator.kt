@@ -76,15 +76,15 @@ private data class ParamDefinition(
 
 object EventsGenerator {
 
-    fun generate(packageName: String, sourceFile: String, targetDirectory: String) {
+    fun generate(packageName: String, sourceFile: File, targetDirectory: File) {
 
         //import EventTracker Class
         val eventTracker = ClassName(PACKAGE_LITICS, EVENT_TRACKER_CLASS_NAME)
         val eventTrackers = ARRAY.parameterizedBy(eventTracker)
 
         //Make func specs for interface and Impl of that interface
-        val funSpecs = buildFunSpecs(buildEventDefinitions(File(sourceFile)))
-        val funImplSpecs = buildFunImplSpecs(buildEventDefinitions(File(sourceFile)))
+        val funSpecs = buildFunSpecs(buildEventDefinitions(sourceFile))
+        val funImplSpecs = buildFunImplSpecs(buildEventDefinitions(sourceFile))
 
         //Make interface GeneratedEventsAnalytics
 
@@ -117,12 +117,9 @@ object EventsGenerator {
             .addType(interfaceImplTypeSpec)
             .build()
 
-        val interfaceFile = File(targetDirectory)
-        val interfaceImplFile = File(targetDirectory)
-
         //Write files to given directory
-        interfaceFileSpec.writeTo(interfaceFile)
-        interfaceImplFileSpec.writeTo(interfaceImplFile)
+        interfaceFileSpec.writeTo(targetDirectory)
+        interfaceImplFileSpec.writeTo(targetDirectory)
     }
 
     private fun buildInterfaceImplTypeSpec(
