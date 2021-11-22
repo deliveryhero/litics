@@ -82,11 +82,9 @@ object EventsGenerator {
         val eventTracker = ClassName(PACKAGE_LITICS, EVENT_TRACKER_CLASS_NAME)
         val eventTrackers = ARRAY.parameterizedBy(eventTracker)
 
-        val funSpecs = mutableListOf<FunSpec>()
-        val funImplSpecs = mutableListOf<FunSpec>()
-
         //Make func specs for interface and Impl of that interface
-        buildFunSpecs(sourceFile, funSpecs, funImplSpecs)
+        val funSpecs = buildFunSpecs(buildEventDefinitions(File(sourceFile)))
+        val funImplSpecs = buildFunImplSpecs(buildEventDefinitions(File(sourceFile)))
 
         //Make interface GeneratedEventsAnalytics
 
@@ -131,7 +129,7 @@ object EventsGenerator {
         generatedEventAnalyticsAbstractClass: ClassName,
         generatedEventAnalyticsClass: ClassName,
         eventTrackersParameterizedTypeName: ParameterizedTypeName,
-        funImplSpecs: MutableList<FunSpec>,
+        funImplSpecs: List<FunSpec>,
     ): TypeSpec {
 
         //Make constructor for GeneratedEventsAnalyticsImpl
@@ -156,46 +154,36 @@ object EventsGenerator {
             .build()
     }
 
-    private fun buildFunSpecs(
-        sourceFile: String,
-        funSpec: MutableList<FunSpec>,
-        funImplSpec: MutableList<FunSpec>,
-    ) {
-        //Read event definitions from the given sourceDirectory
-        val eventsDefinitions = buildEventDefinitions(File(sourceFile))
-        eventsDefinitions.forEach { eventDefinition ->
-            val interfaceFunParamsSpecs = mutableListOf<ParameterSpec>()
-            val implFunParamSpecs = mutableListOf<ParameterSpec>()
+    private fun buildFunSpecs(eventDefinitions: List<EventDefinition>): List<FunSpec> {
+        return eventDefinitions
+            .map { eventDefinition ->
+                val interfaceFunParamsSpecs = eventDefinition.parameters
+                    .map { paramDefinition -> buildParamSpec(paramDefinition, canAddDefault = true) }
 
-            //Make ParamsSpecs for each param provided by definition
-            eventDefinition.parameters.forEach { paramDefinition ->
-                interfaceFunParamsSpecs.add(
-                    buildParamSpec(paramDefinition, canAddDefault = true)
-                )
-                implFunParamSpecs.add(
-                    buildParamSpec(paramDefinition, canAddDefault = false)
-                )
+                buildFuncSpec(eventDefinition.methodName, eventDefinition.methodDoc, interfaceFunParamsSpecs)
             }
+    }
 
-            //Make fun "methodName" with given params
-            funSpec.add(buildFuncSpec(eventDefinition.methodName, eventDefinition.methodDoc, interfaceFunParamsSpecs))
 
-            //Make fun "methodName" implementation with given params
-            funImplSpec.add(
+    private fun buildFunImplSpecs(eventDefinitions: List<EventDefinition>): List<FunSpec> {
+        return eventDefinitions
+            .map { eventDefinition ->
+                val implFunParamSpecs: List<ParameterSpec> = eventDefinition.parameters
+                    .map { paramDefinition -> buildParamSpec(paramDefinition, canAddDefault = false) }
+
                 buildFuncImplSpec(
                     eventDefinition.methodName,
                     eventDefinition.name,
                     implFunParamSpecs,
                     eventDefinition.supportedPlatforms
                 )
-            )
-        }
+            }
     }
 
     private fun buildFuncSpec(
         methodName: String,
         methodDoc: String,
-        funParams: MutableList<ParameterSpec>,
+        funParams: List<ParameterSpec>,
     ): FunSpec =
         FunSpec.builder(methodName)
             .addModifiers(ABSTRACT)
@@ -206,7 +194,7 @@ object EventsGenerator {
     private fun buildFuncImplSpec(
         methodName: String,
         eventName: String,
-        funParamsSpecs: MutableList<ParameterSpec>,
+        funParamsSpecs: List<ParameterSpec>,
         supportedPlatforms: List<String>,
     ): FunSpec {
         val trackingEvent = ClassName(PACKAGE_LITICS, "TrackingEvent")
