@@ -9,10 +9,12 @@
   "properties": {
     "components": {
       "type": "object",
+      "description": "A container for various reusable definitions.",
       "additionalProperties": false,
       "properties": {
         "parameters": {
           "type": "object",
+          "description": "A container for reusable parameters. These can be referenced elsewhere in the file using anchors and aliases.",
           "minProperties": 1,
           "additionalProperties": {
             "type": "object",
@@ -25,8 +27,10 @@
     },
     "events": {
       "type": "object",
+      "description": "Tracking events to be generated.",
       "additionalProperties": {
         "type": "object",
+        "description": "A dictionary of events, with the key being the function name for the generated code.",
         "additionalProperties": false,
         "required": [
           "name",
@@ -34,13 +38,16 @@
         ],
         "properties": {
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "Name of the event."
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "A description of the event. This will be the Kdoc of the generated function."
           },
           "supported_platforms": {
             "type": "array",
+            "description": "The platforms that this event should be logged to.",
             "uniqueItems": true,
             "minItems": 1,
             "items": {
@@ -60,6 +67,7 @@
   "$defs": {
     "parameters": {
       "type": "object",
+      "description": "A dictionary of parameters, with the key being the parameter name.",
       "additionalProperties": false,
       "required": [
         "type",
@@ -71,18 +79,23 @@
             "string",
             "number",
             "boolean"
-          ]
+          ],
+          "description": "The data type of the parameter."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "A description of the parameter. This will be the Kdoc of the generated function parameter."
         },
         "required": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "`true` if the parameter is non-optional, otherwise `false`."
         },
         "default": {
-          "type": "string"
+          "type": "string",
+          "description": "The default value of the parameter if the value isn't provided."
         },
         "example": {
+          "description": "An example value for this parameter."
         }
       }
     }
