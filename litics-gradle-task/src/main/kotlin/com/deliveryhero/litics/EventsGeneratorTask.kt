@@ -14,11 +14,11 @@ abstract class EventsGeneratorTask : DefaultTask() {
     lateinit var packageName: String
 
     @InputFile
-    lateinit var sourceFile: String
+    lateinit var sourceFile: File
 
     @OutputDirectory
-    lateinit var targetDirectory: String
+    lateinit var targetDirectory: File
 
     @TaskAction
-    fun generate() = EventsGenerator.generate(packageName, File(sourceFile), File(targetDirectory))
+    fun generate() = EventsGenerator.generate(packageName, sourceFile, targetDirectory)
 }
