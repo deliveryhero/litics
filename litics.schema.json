@@ -67,7 +67,11 @@
       ],
       "properties": {
         "type": {
-          "type": "string"
+          "enum": [
+            "string",
+            "number",
+            "boolean"
+          ]
         },
         "description": {
           "type": "string"
