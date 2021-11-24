@@ -55,7 +55,6 @@ data class Event(
         val required: Boolean,
         val default: String? = null,
         val example: String? = null,
-        val enum: List<String>? = null,
     )
 }
 
