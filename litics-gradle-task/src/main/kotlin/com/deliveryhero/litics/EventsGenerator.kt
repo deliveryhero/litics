@@ -81,11 +81,11 @@ object EventsGenerator {
         val eventDefinitions = buildEventDefinitions(sourceFile)
         val generatedEventAnalyticsAbstractClass = ClassName(packageName, "GeneratedEventsAnalytics")
 
-        createGeneratedEventsAnalyticsFileSpec(packageName, eventDefinitions, generatedEventAnalyticsAbstractClass).writeTo(targetDirectory)
+        createGeneratedEventsAnalyticsFileSpec(eventDefinitions, generatedEventAnalyticsAbstractClass).writeTo(targetDirectory)
         createGeneratedEventsAnalyticsImplFileSpec(packageName, eventDefinitions, generatedEventAnalyticsAbstractClass).writeTo(targetDirectory)
     }
 
-    private fun createGeneratedEventsAnalyticsFileSpec(packageName: String, eventDefinitions: List<EventDefinition>, generatedEventAnalyticsAbstractClass: ClassName): FileSpec {
+    private fun createGeneratedEventsAnalyticsFileSpec(eventDefinitions: List<EventDefinition>, generatedEventAnalyticsAbstractClass: ClassName): FileSpec {
         val funSpecs = buildFunSpecs(eventDefinitions)
 
         val interfaceTypeSpec = TypeSpec.classBuilder(generatedEventAnalyticsAbstractClass)
