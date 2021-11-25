@@ -1,6 +1,5 @@
 plugins {
     kotlin("multiplatform")
-    id("maven-publish")
 }
 
 kotlin {
@@ -25,13 +24,5 @@ kotlin {
         val commonMain by getting
         val jvmMain by getting
         val jsMain by getting
-    }
-}
-
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            from(components["kotlin"])
-        }
     }
 }
