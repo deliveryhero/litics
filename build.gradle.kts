@@ -30,6 +30,11 @@ allprojects {
         sonatypeHost = SonatypeHost.S01
     }
 
+    tasks.withType<JavaCompile> {
+        sourceCompatibility = JavaVersion.VERSION_1_8.toString()
+        targetCompatibility = JavaVersion.VERSION_1_8.toString()
+    }
+
     group = GROUP
     version = VERSION_NAME
 }

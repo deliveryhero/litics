@@ -5,11 +5,7 @@ plugins {
 kotlin {
     explicitApi()
 
-    jvm {
-        compilations.all {
-            kotlinOptions.jvmTarget = "11"
-        }
-    }
+    jvm()
     js(IR) {
         browser()
         binaries.executable()
