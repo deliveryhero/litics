@@ -9,7 +9,7 @@ Litics allows you to have a single source of tracking event definitions, which c
 The Litics API contains classes that are required by the generated code.
 
 ```kotlin
-implementation("com.deliveryhero.litics:litics:0.1.0")
+implementation("com.deliveryhero.litics:litics:0.1.1")
 ```
 
 The Litics Gradle task takes your event definitions and generates Kotlin code.
@@ -21,7 +21,7 @@ buildscript {
     }
 
     dependencies {
-        classpath("com.github.deliveryhero.litics:litics-gradle-task:0.1.0")
+        classpath("com.github.deliveryhero.litics:litics-gradle-task:0.1.1")
     }
 }
 ```
