@@ -1,26 +1,13 @@
 package com.deliveryhero.litics
 
 import com.charleskorn.kaml.Yaml
-import com.squareup.kotlinpoet.ARRAY
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.CodeBlock
-import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.KModifier.ABSTRACT
 import com.squareup.kotlinpoet.KModifier.OVERRIDE
-import com.squareup.kotlinpoet.MemberName
-import com.squareup.kotlinpoet.ParameterSpec
-import com.squareup.kotlinpoet.ParameterizedTypeName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.PropertySpec
-import com.squareup.kotlinpoet.STRING
-import com.squareup.kotlinpoet.TypeSpec
-import com.squareup.kotlinpoet.buildCodeBlock
-import com.squareup.kotlinpoet.joinToCode
-import java.io.File
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import java.io.File
 
 private const val PACKAGE_LITICS = "com.deliveryhero.litics"
 
@@ -91,7 +78,6 @@ object EventsGenerator {
         val funSpecs = buildFunSpecs(eventDefinitions)
 
         val interfaceTypeSpec = with(TypeSpec.classBuilder(generatedEventAnalyticsAbstractClass)) {
-            this.
             addModifiers(ABSTRACT)
             if (platform == Platform.JS) {
                 addAnnotation(ClassName("kotlin.js", "JsExport"))
