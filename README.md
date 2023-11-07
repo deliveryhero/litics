@@ -68,6 +68,10 @@ In order to generate Kotlin code from your tracking event definitions, you first
 
 ```kotlin
 val generateAnalyticsEvents by tasks.registering(com.deliveryhero.litics.EventsGeneratorTask::class) {
+
+    // Platform type used to apply platform dependant behavior for the generated files.
+    platform = Platform.ANDROID
+    
     // Package name used for the generated files.
     packageName = "com.example.analytics"
 
