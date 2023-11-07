@@ -9,7 +9,7 @@ import org.gradle.api.tasks.TaskAction
 
 @Suppress("unused")
 enum class Platform {
-    ANDROID,
+    JVM,
     JS,
 }
 
